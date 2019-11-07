@@ -4,6 +4,7 @@
     android:layout_width="300dp"
     android:layout_height="wrap_content"
     android:padding="5dp"
+    android:background="@color/colorPrimaryDark"
     android:layout_gravity="center">
 
     <TextView
@@ -29,7 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:layout_marginBottom="15dp"
-            android:textColor="#000000"
+            android:textColor="#FFF"
             android:gravity="center"
             android:text="Enter details to start scanning..."
             android:textStyle="bold"
@@ -41,6 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="15dp"
             android:ems="10"
+            android:textColor="#FFF"
             android:hint="Description here..."
             android:inputType="textPersonName" />
 
@@ -50,6 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="15dp"
             android:ems="10"
+            android:textColor="#FFF"
             android:hint="Notes if any? (Optional)"
             android:inputType="textPersonName" />
 
@@ -61,6 +64,7 @@
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
             android:text="Continuous Scan?"
+            android:textColor="#FFF"
             android:textSize="16sp" />
 
         <Button

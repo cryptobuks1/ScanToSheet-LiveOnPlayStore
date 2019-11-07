@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import com.google.zxing.Result;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 
@@ -21,9 +22,13 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
     ZXingScannerView scannerView;
     SharedPreferences pref;
     SharedPreferences.Editor editor;
-    List<String> scannedList;
+    ArrayList<String> scannedList;
+
+    ArrayList<String> listDescOfItem;
+    ArrayList<String> listNoteOfItem;
 
     String itemName;
+    int scannedTotal = 0;
 
     boolean flagFlash=false;
 //    MediaPlayer beepSound;
@@ -43,6 +48,12 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
         editor = pref.edit();
 
         scannedList = new ArrayList<>();
+        listDescOfItem = new ArrayList<>();
+        listNoteOfItem = new ArrayList<>();
+        scannedList = (ArrayList) getIntent().getSerializableExtra("scannedList");
+        listDescOfItem = (ArrayList) getIntent().getSerializableExtra("listDescOfItem");
+        listNoteOfItem = (ArrayList) getIntent().getSerializableExtra("listNoteOfItem");
+
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 //        beepSound = MediaPlayer.create(ScanActivity.this,R.raw.scan_beep);
@@ -66,26 +77,30 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
             }
         }
 
+        scannedTotal = scannedTotal+1;
+        Toast.makeText(ScanActivity.this, scannedTotal+" Item Scanned", Toast.LENGTH_SHORT).show();
+
         itemName = result.getText();
         scannedList.add(itemName);
 
-        Toast.makeText(ScanActivity.this, scannedList.size()+" Item Scanned", Toast.LENGTH_SHORT).show();
+        listDescOfItem.add(pref.getString("descOfItem",""));
+        listNoteOfItem.add(pref.getString("noteOfItem", ""));
 
         // Play sound
 //        if(boolSoundOnScan){
 //            beepSound.start();
 //        }
+
         // If Continuous Scan
         if(boolScanContinuous){
             scannerView.resumeCameraPreview(ScanActivity.this);
         }else {
-            String[] scannedArray = scannedList.toArray(new String[scannedList.size()]);
-            Bundle b = new Bundle();
-            b.putStringArray("scannedArray", scannedArray);
-            Intent intentMain = new Intent(ScanActivity.this, MainActivity.class);
-            intentMain.putExtras(b);
             editor.putBoolean("flagForScan", true);
             editor.commit();
+            Intent intentMain = new Intent(ScanActivity.this, MainActivity.class);
+            intentMain.putExtra("scannedList", scannedList);
+            intentMain.putExtra("listDescOfItem", listDescOfItem);
+            intentMain.putExtra("listNoteOfItem", listNoteOfItem);
             startActivity(intentMain);
             finish();
         }
@@ -122,13 +137,12 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
             startActivity(intentMain);
             finish();
         }else {
-            String[] scannedArray = scannedList.toArray(new String[scannedList.size()]);
-            Bundle b = new Bundle();
-            b.putStringArray("scannedArray", scannedArray);
-            Intent intentMain = new Intent(ScanActivity.this, MainActivity.class);
-            intentMain.putExtras(b);
             editor.putBoolean("flagForScan", true);
             editor.commit();
+            Intent intentMain = new Intent(ScanActivity.this, MainActivity.class);
+            intentMain.putExtra("scannedList", scannedList);
+            intentMain.putExtra("listDescOfItem", listDescOfItem);
+            intentMain.putExtra("listNoteOfItem", listNoteOfItem);
             startActivity(intentMain);
             finish();
         }
@@ -142,16 +156,16 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
             startActivity(intentMain);
             finish();
         }else {
-            String[] scannedArray = scannedList.toArray(new String[scannedList.size()]);
-            Bundle b = new Bundle();
-            b.putStringArray("scannedArray", scannedArray);
-            Intent intentMain = new Intent(ScanActivity.this, MainActivity.class);
-            intentMain.putExtras(b);
             editor.putBoolean("flagForScan", true);
             editor.commit();
+            Intent intentMain = new Intent(ScanActivity.this, MainActivity.class);
+            intentMain.putExtra("scannedList", scannedList);
+            intentMain.putExtra("listDescOfItem", listDescOfItem);
+            intentMain.putExtra("listNoteOfItem", listNoteOfItem);
             startActivity(intentMain);
             finish();
-        }        return false;
+        }
+        return false;
     }
 
     //Settings Flash switch STARTS here

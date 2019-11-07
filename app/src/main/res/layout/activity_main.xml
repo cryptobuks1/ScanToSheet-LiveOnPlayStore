@@ -8,23 +8,17 @@
 
     <include layout="@layout/content_main" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/id_fabDownload"
-        android:onClick="fabDownloadTapped"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|start"
-        android:layout_margin="16dp"
-        app:srcCompat="@drawable/ic_file_download_white_24dp" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <io.github.yavski.fabspeeddial.FabSpeedDial
         android:id="@+id/id_fab"
-        android:onClick="fabTapped"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
-        app:srcCompat="@drawable/ic_scan_white_24dp" />
+        app:fabGravity="bottom_end"
+        app:fabMenu="@menu/fab_menu"
+        app:miniFabBackgroundTint="@android:color/white"
+        app:miniFabDrawableTint="?attr/colorPrimaryDark"
+        app:miniFabTitleTextColor="?attr/colorPrimaryDark"
+        />
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

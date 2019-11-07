@@ -42,7 +42,7 @@ import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.internal.NavigationMenu;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
@@ -53,6 +53,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.github.yavski.fabspeeddial.FabSpeedDial;
+
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
@@ -60,24 +62,25 @@ public class MainActivity extends AppCompatActivity {
     SharedPreferences pref;
     SharedPreferences.Editor editor;
     ConnectivityManager connectivityManager;
-    FloatingActionButton id_fab;
+    View view;
     ListView id_listView;
     LinearLayout id_layoutClear;
     RelativeLayout id_layoutInfo;
     ProgressDialog dialog;
 
-    String[] scannedArray;
-    ArrayList arrayList;
+    ArrayList<String> scannedList;
+    ArrayList<String> listDescOfItem;
+    ArrayList<String> listNoteOfItem;
     ArrayAdapter arrayAdapter;
     int sizeOfArrayList;
     int position = 0;
-
+    boolean flagDialog;
     String itemDesc;
     String itemNote;
 
-    Boolean flagFab = true;
-    boolean flagDialog;
+
     Dialog modalScan;
+    FabSpeedDial fabSpeedDial;
     Switch id_continuousScan;
     TextView id_txtClearAll;
     TextView id_txtInfo;
@@ -93,8 +96,13 @@ public class MainActivity extends AppCompatActivity {
         pref = getApplicationContext().getSharedPreferences("mySharedPref", 0); // 0 - for private mode
         editor = pref.edit();
 
+        scannedList = new ArrayList<>();
+        listDescOfItem = new ArrayList<>();
+        listNoteOfItem = new ArrayList<>();
 
-        id_fab = findViewById(R.id.id_fab);
+
+        view = findViewById(R.id.id_fab);
+        fabSpeedDial = findViewById(R.id.id_fab);
         id_txtClearAll = findViewById(R.id.id_txtClearAll);
         id_txtInfo = findViewById(R.id.id_txtInfo);
         id_listView = findViewById(R.id.id_listView);
@@ -103,24 +111,20 @@ public class MainActivity extends AppCompatActivity {
         modalScan = new Dialog(MainActivity.this);
 
         if(pref.getBoolean("flagForScan", false)){
-            Bundle b = this.getIntent().getExtras();
             editor.putBoolean("flagForScan", false);
             editor.commit(); // commit changes
-            scannedArray=b.getStringArray("scannedArray");
-            arrayList = new ArrayList(Arrays.asList(scannedArray));
+            scannedList = (ArrayList) getIntent().getSerializableExtra("scannedList");
+            listDescOfItem = (ArrayList) getIntent().getSerializableExtra("listDescOfItem");
+            listNoteOfItem = (ArrayList) getIntent().getSerializableExtra("listNoteOfItem");
             id_layoutInfo.setVisibility(GONE);
             id_layoutClear.setVisibility(VISIBLE);
             id_listView.setVisibility(VISIBLE);
-            id_fab.setImageResource(R.drawable.ic_send_white_24dp);
-            flagFab=false;
-            arrayAdapter = new ArrayAdapter(MainActivity.this,android.R.layout.simple_list_item_1,arrayList);
-            id_txtClearAll.setText("Remove All("+arrayList.size()+")");
+            arrayAdapter = new ArrayAdapter(MainActivity.this,android.R.layout.simple_list_item_1,scannedList);
+            id_txtClearAll.setText("Remove All("+scannedList.size()+")");
             id_listView.setAdapter(arrayAdapter);
         }else {
             if(pref.getString("urlOfSheet", null)!=null){
                 id_txtInfo.setText("Congratulations! you're all set to start scanning...\nJust press Floating Action Button below to get Started.");
-                id_fab.setImageResource(R.drawable.ic_scan_white_24dp);
-                flagFab = true;
             }
         }
 
@@ -128,58 +132,71 @@ public class MainActivity extends AppCompatActivity {
         id_listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view,final int i, long l) {
-                final String tempItem = arrayList.get(i).toString();
-                arrayList.remove(i);
-                id_txtClearAll.setText("Remove All("+arrayList.size()+")");
+                final String tempItem = scannedList.get(i);
+                scannedList.remove(i);
+                id_txtClearAll.setText("Remove All("+scannedList.size()+")");
                 arrayAdapter.notifyDataSetChanged();
 
                 // Undo logic
                 Snackbar.make(view, "Removed successfully...", Snackbar.LENGTH_LONG).setAction("Undo", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if(arrayList.isEmpty()){
+                        if(scannedList.isEmpty()){
                             id_layoutInfo.setVisibility(GONE);
                             id_listView.setVisibility(VISIBLE);
                             id_layoutClear.setVisibility(VISIBLE);
-                            id_fab.setImageResource(R.drawable.ic_send_white_24dp);
-                            flagFab = false;
                         }
-                        arrayList.add(i,tempItem);
-                        id_txtClearAll.setText("Remove All("+arrayList.size()+")");
+                        scannedList.add(i,tempItem);
+                        id_txtClearAll.setText("Remove All("+scannedList.size()+")");
                         arrayAdapter.notifyDataSetChanged();
                     }
                 }).show();
 
                 // If All items are removed
-                if(arrayList.isEmpty()){
+                if(scannedList.isEmpty()){
                     id_txtInfo.setText("Hey! you're all set to start scanning...\nJust press Floating Action Button below to get Started.");
                     id_layoutClear.setVisibility(GONE);
                     id_listView.setVisibility(GONE);
                     id_layoutInfo.setVisibility(VISIBLE);
-                    id_fab.setImageResource(R.drawable.ic_scan_white_24dp);
-                    flagFab = true;
                 }
             }
         });
 
+
+        //MAIN FAB Tapped
+        fabSpeedDial.setMenuListener(new FabSpeedDial.MenuListener() {
+            @Override
+            public boolean onPrepareMenu(NavigationMenu navigationMenu) {
+                return true;
+            }
+            @Override
+            public boolean onMenuItemSelected(MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.action_scan) {
+                    scanNow();
+                }
+                if (menuItem.getItemId() == R.id.action_download) {
+                    offlineDownload();
+                }
+                if (menuItem.getItemId() == R.id.action_send) {
+                    sendToSpreadsheet();
+                }
+                return true;
+            }
+
+            @Override
+            public void onMenuClosed() {
+
+            }
+        });
+
         //Checking for Internet Connection
-        View viewButton = findViewById(R.id.id_fab);
         if(!(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
                 connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED)) {
-            Snackbar.make(viewButton,"No Internet Connection!...", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(view,"No Internet Connection!...", Snackbar.LENGTH_LONG).show();
         }
+
     }
 
-    // Help text tapped
-    public void helpTapped(View view){
-            if((connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
-                    connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED)){
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=X9B7uaxQnNg"));
-                startActivity(browserIntent);
-            }else{
-                Snackbar.make(view,"No Internet Connection!...️", Snackbar.LENGTH_LONG).show();
-            }
-    }
 
     // Clear All Button Tapped
     public void clearAllTapped(View view){
@@ -189,15 +206,13 @@ public class MainActivity extends AppCompatActivity {
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface arg0, int arg1) {
-                        arrayList.clear();
+                        scannedList.clear();
                         arrayAdapter.notifyDataSetChanged();
                         View view = findViewById(R.id.id_fab);
                         id_txtInfo.setText("Hey! you're all set to start scanning...\nJust press Floating Action Button below to get Started.");
                         id_layoutClear.setVisibility(GONE);
                         id_listView.setVisibility(GONE);
                         id_layoutInfo.setVisibility(VISIBLE);
-                        id_fab.setImageResource(R.drawable.ic_scan_white_24dp);
-                        flagFab = true;
                         Snackbar.make(view, "All items cleared successfully...", Snackbar.LENGTH_LONG).show();                            }
                 });
         alertDialogBuilder.setNegativeButton("No",new DialogInterface.OnClickListener() {
@@ -212,9 +227,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Floating Action Button is Tapped
-    public void fabTapped(View view){
-        if(flagFab) {
+    //Fab ScanNow tapped
+    public void scanNow(){
             if (pref.getString("nameOfSheet", "").isEmpty() || pref.getString("urlOfSheet", "").isEmpty()) {
                 Snackbar.make(view, "No spreadsheet is added!...️", Snackbar.LENGTH_LONG).show();
             } else {
@@ -230,6 +244,13 @@ public class MainActivity extends AppCompatActivity {
                     modalScan.show();
                 }
             }
+        }
+
+
+    //Fab SendToSpreadsheet tapped
+    public void sendToSpreadsheet(){
+        if(scannedList.isEmpty()){
+            Snackbar.make(view,"No data to send, please scan first!...️", Snackbar.LENGTH_LONG).show();
         }else {
             if ((connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
                     connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED)) {
@@ -237,17 +258,17 @@ public class MainActivity extends AppCompatActivity {
                 dialog.setMessage("Sending To Google SpreadSheet, Please wait...");
                 dialog.setCanceledOnTouchOutside(false);
                 dialog.show();
-                addItemToSheet();
+                callSpreadsheetAPI();
             } else {
-                Snackbar.make(view, "No Internet Connection!...️", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(view, "No Internet Connection!, Try Offline Download...️", Snackbar.LENGTH_LONG).show();
             }
         }
     }
 
     //Fab Download tapped
-    public void fabDownloadTapped(View view){
-        if(flagFab){
-            Snackbar.make(view,"No data for Offline download!...️", Snackbar.LENGTH_LONG).show();
+    public void offlineDownload(){
+        if(scannedList.isEmpty()){
+            Snackbar.make(view,"No data to download, please scan first!...️", Snackbar.LENGTH_LONG).show();
         }else {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -266,9 +287,8 @@ public class MainActivity extends AppCompatActivity {
 
     // Save data to SD Card
     public void saveToSD() {
-        sizeOfArrayList = arrayList.size();
+        sizeOfArrayList = scannedList.size();
         for (int i = 0; i < sizeOfArrayList; i++) {
-            View view = findViewById(R.id.id_fab);
             String fileName = "STS" + ".txt";//like 2016_01_12.txt
             try {
                 File root = new File(Environment.getExternalStorageDirectory() + File.separator + "ScanToSheet");
@@ -277,7 +297,9 @@ public class MainActivity extends AppCompatActivity {
                 }
                 File gpxfile = new File(root, fileName);
                 FileWriter writer = new FileWriter(gpxfile, true);
-                writer.append(arrayList.get(i)+"-"+pref.getString("descOfItem","NULL")+"-"+pref.getString("noteOfItem", "NULL")+"\n\n");
+                writer.append("--------------------------------------------------------\n"
+                        +scannedList.get(i)+"-"+listDescOfItem.get(i)
+                        +"\n"+listNoteOfItem.get(i)+"\n--------------------------------------------------------\n\n\n");
                 writer.flush();
                 writer.close();
                 if(sizeOfArrayList==i+1){
@@ -303,6 +325,9 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("noteOfItem", itemNote); // Storing Note
             editor.commit(); // commit changes
             Intent intentScan = new Intent(MainActivity.this, ScanActivity.class);
+            intentScan.putExtra("scannedList", scannedList);
+            intentScan.putExtra("listDescOfItem", listDescOfItem);
+            intentScan.putExtra("listNoteOfItem", listNoteOfItem);
             intentScan.putExtra("boolScanContinuous", id_continuousScan.isChecked() ? true : false);
             modalScan.dismiss();
             startActivity(intentScan);
@@ -311,18 +336,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // HTTP Rest API Calls
-    private void addItemToSheet() {
+    private void callSpreadsheetAPI() {
         flagDialog=true;
-        sizeOfArrayList = arrayList.size();
+        sizeOfArrayList = scannedList.size();
+        final String textUrl = pref.getString("urlOfSheet", null);
+        final String textSheet = pref.getString("nameOfSheet", null);
         Handler handler = new Handler();
         for (int i=0;i<sizeOfArrayList;i++){
             position = i;
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    final String textUrl = pref.getString("urlOfSheet", null);
-                    final String textSheet = pref.getString("nameOfSheet", null);
-
                     StringRequest stringRequest = new StringRequest(Request.Method.POST,
                             "https://script.google.com/macros/s/AKfycbwD30p359_LRXGLZKlaJU5lry78qFrZbyF50uldO-JRqv-Eqkg/exec",
                             new com.android.volley.Response.Listener<String>() {
@@ -331,7 +355,7 @@ public class MainActivity extends AppCompatActivity {
                                     final View view = findViewById(R.id.id_fab);
                                     if(sizeOfArrayList == 1){
                                         dialog.dismiss();
-                                        Snackbar.make(view,sizeOfArrayList+" item added to spreadseet successfully...️", Snackbar.LENGTH_LONG).show();
+                                        Snackbar.make(view,sizeOfArrayList+" item added to spreadsheet successfully...️", Snackbar.LENGTH_LONG).show();
                                         flagDialog = true;
                                     }else{
                                         if (sizeOfArrayList == position+1) {
@@ -342,9 +366,15 @@ public class MainActivity extends AppCompatActivity {
                                                     @Override
                                                     public void run() {
                                                         dialog.dismiss();
-                                                        Snackbar.make(view,sizeOfArrayList+" items added to spreadseet successfully...️", Snackbar.LENGTH_LONG).show();
+                                                        Snackbar.make(view,sizeOfArrayList+" items added to spreadsheet successfully...️", Snackbar.LENGTH_LONG).setAction("Show", new View.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(View v) {
+                                                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(pref.getString("urlOfSheet", null)));
+                                                                startActivity(browserIntent);
+                                                            }
+                                                        }).show();
                                                     }
-                                                }, 1500*sizeOfArrayList);
+                                                }, 1000*sizeOfArrayList);
                                             }
                                         }
                                     }
@@ -362,9 +392,11 @@ public class MainActivity extends AppCompatActivity {
                             // Passing parameters
                             parmas.put("TextUrl", textUrl);
                             parmas.put("TextSheet", textSheet);
-                            parmas.put("Item_name", arrayList.get(position).toString());
-                            parmas.put("Item_desc", pref.getString("descOfItem",""));
-                            parmas.put("Item_note", pref.getString("noteOfItem", ""));
+                            parmas.put("Item_name", scannedList.get(position));
+//                            parmas.put("Item_desc", pref.getString("descOfItem",""));
+//                            parmas.put("Item_note", pref.getString("noteOfItem", ""));
+                            parmas.put("Item_desc",listDescOfItem.get(position));
+                            parmas.put("Item_note", listNoteOfItem.get(position));
                             return parmas;
                         }
                     };
@@ -374,9 +406,22 @@ public class MainActivity extends AppCompatActivity {
                     RequestQueue queue = Volley.newRequestQueue(MainActivity.this);
                     queue.add(stringRequest);
                 }
-            }, 1500*(i+1));
+            }, 1000*(i+1));
         }
     }
+
+
+    // Help text tapped
+    public void helpTapped(View view){
+        if((connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+                connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED)){
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=X9B7uaxQnNg"));
+            startActivity(browserIntent);
+        }else{
+            Snackbar.make(view,"No Internet Connection!...️", Snackbar.LENGTH_LONG).show();
+        }
+    }
+
 
     //Settings menu STARTS here
     @Override
@@ -387,11 +432,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.id_settingsMenu) {
-            Intent settingsIntent=new Intent(MainActivity.this,SettingsActivity.class);
-            startActivity(settingsIntent);
-            return true;
+                Intent settingsIntent=new Intent(MainActivity.this,SettingsActivity.class);
+                startActivity(settingsIntent);
         }
-        return super.onOptionsItemSelected(item);
+        return true;
     } //Settings menu ENDS here
 
 

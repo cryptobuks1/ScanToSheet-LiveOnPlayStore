@@ -114,7 +114,7 @@
             android:padding="10dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Note: If data is not being sent to your Google SpreadSheet then the Sheet might not be publicaly editable or you have entered a wrong URL."
+            android:text="Note: If data is not being sent to your Google SpreadSheet then the Sheet might not be publicly editable or you have entered a wrong URL."
             android:textColor="@color/colorPrimaryDark"
             android:textAlignment="center"/>
 
