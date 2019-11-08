@@ -89,7 +89,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             new AlertDialog.Builder(SettingsActivity.this)
                     .setTitle("Fields can't be empty!")
-                    .setMessage("Important: Make sure spreadsheet is Publicly Editable.")
+                    .setMessage("Please make sure that spreadsheet URL is valid & publicly editable.")
                     .setCancelable(false)
                     .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                         @Override
@@ -145,12 +145,12 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-
     }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        finish();
+        Intent intentMain = new Intent(SettingsActivity.this,MainActivity.class);
+        startActivity(intentMain);
     }
 }

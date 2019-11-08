@@ -13,8 +13,6 @@ import android.widget.Toast;
 
 import com.google.zxing.Result;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 
 

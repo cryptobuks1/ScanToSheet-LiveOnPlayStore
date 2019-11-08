@@ -17,6 +17,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -32,7 +34,6 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
@@ -49,9 +50,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import io.github.yavski.fabspeeddial.FabSpeedDial;
 
@@ -73,11 +74,13 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> listNoteOfItem;
     ArrayAdapter arrayAdapter;
     int sizeOfArrayList;
-    int position = 0;
     boolean flagDialog;
+    boolean alertDialogflag;
+    String appScriptURL;
     String itemDesc;
     String itemNote;
 
+    Vibrator vibrator;
 
     Dialog modalScan;
     FabSpeedDial fabSpeedDial;
@@ -100,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
         listDescOfItem = new ArrayList<>();
         listNoteOfItem = new ArrayList<>();
 
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         view = findViewById(R.id.id_fab);
         fabSpeedDial = findViewById(R.id.id_fab);
@@ -109,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
         id_layoutClear = findViewById(R.id.id_layoutClear);
         id_layoutInfo = findViewById(R.id.id_layoutInfo);
         modalScan = new Dialog(MainActivity.this);
+
 
         if(pref.getBoolean("flagForScan", false)){
             editor.putBoolean("flagForScan", false);
@@ -132,8 +137,12 @@ public class MainActivity extends AppCompatActivity {
         id_listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view,final int i, long l) {
-                final String tempItem = scannedList.get(i);
+                final String tempScannedItem = scannedList.get(i);
+                final String tempDescItem = listDescOfItem.get(i);
+                final String tempNoteItem = listNoteOfItem.get(i);
                 scannedList.remove(i);
+                listDescOfItem.remove(i);
+                listNoteOfItem.remove(i);
                 id_txtClearAll.setText("Remove All("+scannedList.size()+")");
                 arrayAdapter.notifyDataSetChanged();
 
@@ -146,7 +155,9 @@ public class MainActivity extends AppCompatActivity {
                             id_listView.setVisibility(VISIBLE);
                             id_layoutClear.setVisibility(VISIBLE);
                         }
-                        scannedList.add(i,tempItem);
+                        scannedList.add(i,tempScannedItem);
+                        listDescOfItem.add(i,tempDescItem);
+                        listNoteOfItem.add(i,tempNoteItem);
                         id_txtClearAll.setText("Remove All("+scannedList.size()+")");
                         arrayAdapter.notifyDataSetChanged();
                     }
@@ -337,25 +348,72 @@ public class MainActivity extends AppCompatActivity {
 
     // HTTP Rest API Calls
     private void callSpreadsheetAPI() {
+        int i;
         flagDialog=true;
+        alertDialogflag =true;
         sizeOfArrayList = scannedList.size();
         final String textUrl = pref.getString("urlOfSheet", null);
         final String textSheet = pref.getString("nameOfSheet", null);
+        // Random googleAppScript assign logic
+        Random r = new Random();
+        int ran = r.nextInt(7 - 1) + 1;
+        switch (ran) {
+            case 2:
+                appScriptURL = "https://script.google.com/macros/s/AKfycbzBj66goAeosyG3sXjNbnrImr2XhaDrQhDfHNa37LYaVGWWULo/exec";
+                break;
+            case 3:
+                appScriptURL = "https://script.google.com/macros/s/AKfycbzMG4cf1XYPcYdvvaCcCFCxR0z9TwJw7OuYGqiJpIjRzyTTd7s/exec";
+                break;
+            case 4:
+                appScriptURL = "https://script.google.com/macros/s/AKfycbx3G9vwammfyMtkAamfM1lDIB_OJDg4Q17rX9XOMbTNT2Zp6g/exec";
+                break;
+            case 5:
+                appScriptURL = "https://script.google.com/macros/s/AKfycbwTuGZAG8VPoxdOpRsw4Eo6Ak4kz9KHP_hs9-c-0NKbHo3rfQ/exec";
+                break;
+            case 6:
+                appScriptURL = "https://script.google.com/macros/s/AKfycbyRevrHW9TyG0S20FkOnkNDbE1HW0hsGJpxOSyx_w0NJCFkGg/exec";
+                break;
+        }
         Handler handler = new Handler();
-        for (int i=0;i<sizeOfArrayList;i++){
-            position = i;
+        for (i=0;i<sizeOfArrayList;i++){
+            final int j=i;
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
+                    final int position = j;
                     StringRequest stringRequest = new StringRequest(Request.Method.POST,
-                            "https://script.google.com/macros/s/AKfycbwD30p359_LRXGLZKlaJU5lry78qFrZbyF50uldO-JRqv-Eqkg/exec",
+                            appScriptURL,
                             new com.android.volley.Response.Listener<String>() {
                                 @Override
                                 public void onResponse(final String response) {
-                                    final View view = findViewById(R.id.id_fab);
                                     if(sizeOfArrayList == 1){
                                         dialog.dismiss();
-                                        Snackbar.make(view,sizeOfArrayList+" item added to spreadsheet successfully...️", Snackbar.LENGTH_LONG).show();
+                                        if (response.matches("Added Successfully")) {
+                                            Snackbar.make(view, sizeOfArrayList + " item added to spreadsheet successfully...️", Snackbar.LENGTH_LONG).setAction("Show", new View.OnClickListener() {
+                                                @Override
+                                                public void onClick(View v) {
+                                                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(pref.getString("urlOfSheet", null)));
+                                                    startActivity(browserIntent);
+                                                }
+                                            }).show();
+                                            // Vibration
+                                            if (Build.VERSION.SDK_INT >= 26) {
+                                                vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                                            } else {
+                                                vibrator.vibrate(500);
+                                            }
+                                        }else {
+                                            new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                                                    .setTitle("Error! Failed to send data...")
+                                                    .setMessage("Please make sure that spreadsheet URL is valid & publicly editable.")
+                                                    .setCancelable(false)
+                                                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(DialogInterface dialog, int which) {
+                                                            //Whatever
+                                                        }
+                                                    }).show();
+                                        }
                                         flagDialog = true;
                                     }else{
                                         if (sizeOfArrayList == position+1) {
@@ -366,13 +424,32 @@ public class MainActivity extends AppCompatActivity {
                                                     @Override
                                                     public void run() {
                                                         dialog.dismiss();
-                                                        Snackbar.make(view,sizeOfArrayList+" items added to spreadsheet successfully...️", Snackbar.LENGTH_LONG).setAction("Show", new View.OnClickListener() {
-                                                            @Override
-                                                            public void onClick(View v) {
-                                                                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(pref.getString("urlOfSheet", null)));
-                                                                startActivity(browserIntent);
+                                                        if (response.matches("Added Successfully")) {
+                                                            Snackbar.make(view, sizeOfArrayList + " items added to spreadsheet successfully...️", Snackbar.LENGTH_LONG).setAction("Show", new View.OnClickListener() {
+                                                                @Override
+                                                                public void onClick(View v) {
+                                                                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(pref.getString("urlOfSheet", null)));
+                                                                    startActivity(browserIntent);
+                                                                }
+                                                            }).show();
+                                                            // Vibration
+                                                            if (Build.VERSION.SDK_INT >= 26) {
+                                                                vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                                                            } else {
+                                                                vibrator.vibrate(500);
                                                             }
-                                                        }).show();
+                                                        }else{
+                                                            new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                                                                    .setTitle("Error! Failed to send data...")
+                                                                    .setMessage("Please make sure that spreadsheet URL is valid & publicly editable.")
+                                                                    .setCancelable(false)
+                                                                    .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                                                        @Override
+                                                                        public void onClick(DialogInterface dialog, int which) {
+                                                                            //Whatever
+                                                                        }
+                                                                    }).show();
+                                                        }
                                                     }
                                                 }, 1000*sizeOfArrayList);
                                             }
@@ -383,7 +460,19 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onErrorResponse(VolleyError error) {
                             dialog.dismiss();
-                            Toast.makeText(MainActivity.this,"Error! sending data failed...",Toast.LENGTH_SHORT).show();
+                            if(alertDialogflag) {
+                                new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                                        .setTitle("Error! Failed to send data...")
+                                        .setMessage("Please make sure that spreadsheet URL is valid & publicly editable.")
+                                        .setCancelable(false)
+                                        .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                //Whatever
+                                            }
+                                        }).show();
+                                alertDialogflag = false;
+                            }
                         }
                     }) {
                         @Override
@@ -393,8 +482,6 @@ public class MainActivity extends AppCompatActivity {
                             parmas.put("TextUrl", textUrl);
                             parmas.put("TextSheet", textSheet);
                             parmas.put("Item_name", scannedList.get(position));
-//                            parmas.put("Item_desc", pref.getString("descOfItem",""));
-//                            parmas.put("Item_note", pref.getString("noteOfItem", ""));
                             parmas.put("Item_desc",listDescOfItem.get(position));
                             parmas.put("Item_note", listNoteOfItem.get(position));
                             return parmas;
