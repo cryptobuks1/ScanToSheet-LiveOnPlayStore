@@ -38,6 +38,7 @@ public class SettingsActivity extends AppCompatActivity {
         pref = getApplicationContext().getSharedPreferences("mySharedPref", 0); // 0 - for private mode
         editor = pref.edit();
 
+
         id_nameOfSheet = findViewById(R.id.id_nameOfSheet);
         id_urlOfSheet = findViewById(R.id.id_urlOfSheet);
 //        id_soundOnScan = findViewById(R.id.id_soundOnScan);
@@ -137,7 +138,6 @@ public class SettingsActivity extends AppCompatActivity {
         }else {
             Snackbar.make(view, "No spreadsheet is added!...️", Snackbar.LENGTH_LONG).show();
         }
-
     }
 
 

@@ -7,8 +7,8 @@ android {
         applicationId "com.nikhilchauhan.scantosheet"
         minSdkVersion 23
         targetSdkVersion 29
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 6
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -31,4 +31,5 @@ dependencies {
     implementation 'me.dm7.barcodescanner:zxing:1.9'
     implementation 'com.android.volley:volley:1.1.1'
     implementation 'io.github.yavski:fab-speed-dial:1.0.6'
+    implementation 'com.anjlab.android.iab.v3:library:1.0.44'
 }

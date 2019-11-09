@@ -34,6 +34,7 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
@@ -43,6 +44,8 @@ import com.android.volley.RetryPolicy;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.anjlab.android.iab.v3.BillingProcessor;
+import com.anjlab.android.iab.v3.TransactionDetails;
 import com.google.android.material.internal.NavigationMenu;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -59,7 +62,7 @@ import io.github.yavski.fabspeeddial.FabSpeedDial;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements BillingProcessor.IBillingHandler{
     SharedPreferences pref;
     SharedPreferences.Editor editor;
     ConnectivityManager connectivityManager;
@@ -75,12 +78,14 @@ public class MainActivity extends AppCompatActivity {
     ArrayAdapter arrayAdapter;
     int sizeOfArrayList;
     boolean flagDialog;
+    boolean flagPurchased;
     boolean alertDialogflag;
     String appScriptURL;
     String itemDesc;
     String itemNote;
 
     Vibrator vibrator;
+    BillingProcessor billingProcessor;
 
     Dialog modalScan;
     FabSpeedDial fabSpeedDial;
@@ -104,6 +109,9 @@ public class MainActivity extends AppCompatActivity {
         listNoteOfItem = new ArrayList<>();
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        billingProcessor = BillingProcessor.newBillingProcessor(MainActivity.this, "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgweHIkf4bnV254X8bipY9Z5ZztQACMZdm/mZDlU+KCLwwM0MCaq+lbdpBleW1NzKAAjDl3LNbe1dKwaM+5/ESRit9BnlqXxGs+7FEaFLMkz95uJHS0QN5ffDuuMEMUpYzfj9Ir2uJDp+OFwg7euKb7U2biY+k0/oBlfRK7eVGEGB/Ju9JiNUerCayyFGAXz9/Q53/oPuBetAqRWIzPX1C8VjWOUknFR4TrJi0IrNz5hzBtHgdj4hQe2FYkFSpLS/MSsX3vCN3cvqjELxgqflysbWy79c/+jxxeD9d2EMH4eAnvo56k/x4dNQRR56XLVN3j6zrvnd0rYg84VcjLEjFQIDAQAB", MainActivity.this);
+        billingProcessor.initialize(); // binds
+        flagPurchased =pref.getBoolean("flagPurchased", false);
 
         view = findViewById(R.id.id_fab);
         fabSpeedDial = findViewById(R.id.id_fab);
@@ -183,7 +191,18 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemSelected(MenuItem menuItem) {
                 if (menuItem.getItemId() == R.id.action_scan) {
-                    scanNow();
+                    if(flagPurchased){
+                        scanNow();
+                    }else {
+                        editor.putInt("scanCount", pref.getInt("scanCount", 0)+1); // Storing scanCount
+                        editor.commit();
+                        if(pref.getInt("scanCount", 1)==11){
+                            Toast.makeText(MainActivity.this, "Trial period ended, please purchase!...", Toast.LENGTH_SHORT).show();
+                            billingProcessor.purchase(MainActivity.this,"scantosheet_premium");
+                        }else{
+                            scanNow();
+                        }
+                    }
                 }
                 if (menuItem.getItemId() == R.id.action_download) {
                     offlineDownload();
@@ -332,17 +351,17 @@ public class MainActivity extends AppCompatActivity {
             id_txtDesc.requestFocus();
             id_txtDesc.setError("Please enter something!");
         }else {
-            editor.putString("descOfItem", itemDesc); // Storing Description
-            editor.putString("noteOfItem", itemNote); // Storing Note
-            editor.commit(); // commit changes
-            Intent intentScan = new Intent(MainActivity.this, ScanActivity.class);
-            intentScan.putExtra("scannedList", scannedList);
-            intentScan.putExtra("listDescOfItem", listDescOfItem);
-            intentScan.putExtra("listNoteOfItem", listNoteOfItem);
-            intentScan.putExtra("boolScanContinuous", id_continuousScan.isChecked() ? true : false);
-            modalScan.dismiss();
-            startActivity(intentScan);
-            finish();
+                editor.putString("descOfItem", itemDesc); // Storing Description
+                editor.putString("noteOfItem", itemNote); // Storing Note
+                editor.commit(); // commit changes
+                Intent intentScan = new Intent(MainActivity.this, ScanActivity.class);
+                intentScan.putExtra("scannedList", scannedList);
+                intentScan.putExtra("listDescOfItem", listDescOfItem);
+                intentScan.putExtra("listNoteOfItem", listNoteOfItem);
+                intentScan.putExtra("boolScanContinuous", id_continuousScan.isChecked() ? true : false);
+                modalScan.dismiss();
+                startActivity(intentScan);
+                finish();
         }
     }
 
@@ -545,5 +564,43 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+    @Override
+    public void onBillingInitialized() {
+    }
+
+    @Override
+    public void onProductPurchased(String productId, TransactionDetails details) {
+        editor.putBoolean("flagPurchased", true);
+        editor.commit();
+    }
+
+    @Override
+    public void onBillingError(int errorCode, Throwable error) {
+        Toast.makeText(MainActivity.this, "Something went wrong!...", Toast.LENGTH_SHORT).show();
+        editor.putBoolean("flagPurchased", false);
+        editor.commit();
+    }
+
+    @Override
+    public void onPurchaseHistoryRestored() {
+        Toast.makeText(MainActivity.this, "Your purchase is restored...", Toast.LENGTH_SHORT).show();
+        editor.putBoolean("flagPurchased", true);
+        editor.commit();
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (!billingProcessor.handleActivityResult(requestCode, resultCode, data)) {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+    @Override
+    public void onDestroy() {
+        if (billingProcessor != null) {
+            billingProcessor.release();
+        }
+        super.onDestroy();
+    }
 
 }
