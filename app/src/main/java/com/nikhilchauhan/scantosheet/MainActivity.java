@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
     int sizeOfArrayList;
     boolean flagDialog;
     boolean flagPurchased;
-    boolean alertDialogflag;
+    boolean flagAlertDialog;
     String appScriptURL;
     String itemDesc;
     String itemNote;
@@ -111,7 +111,6 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         billingProcessor = BillingProcessor.newBillingProcessor(MainActivity.this, "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgweHIkf4bnV254X8bipY9Z5ZztQACMZdm/mZDlU+KCLwwM0MCaq+lbdpBleW1NzKAAjDl3LNbe1dKwaM+5/ESRit9BnlqXxGs+7FEaFLMkz95uJHS0QN5ffDuuMEMUpYzfj9Ir2uJDp+OFwg7euKb7U2biY+k0/oBlfRK7eVGEGB/Ju9JiNUerCayyFGAXz9/Q53/oPuBetAqRWIzPX1C8VjWOUknFR4TrJi0IrNz5hzBtHgdj4hQe2FYkFSpLS/MSsX3vCN3cvqjELxgqflysbWy79c/+jxxeD9d2EMH4eAnvo56k/x4dNQRR56XLVN3j6zrvnd0rYg84VcjLEjFQIDAQAB", MainActivity.this);
         billingProcessor.initialize(); // binds
-        flagPurchased =pref.getBoolean("flagPurchased", false);
 
         view = findViewById(R.id.id_fab);
         fabSpeedDial = findViewById(R.id.id_fab);
@@ -191,12 +190,13 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
             @Override
             public boolean onMenuItemSelected(MenuItem menuItem) {
                 if (menuItem.getItemId() == R.id.action_scan) {
+                    flagPurchased =pref.getBoolean("flagPurchased", false);
                     if(flagPurchased){
                         scanNow();
                     }else {
                         editor.putInt("scanCount", pref.getInt("scanCount", 0)+1); // Storing scanCount
                         editor.commit();
-                        if(pref.getInt("scanCount", 1)==11){
+                        if(pref.getInt("scanCount", 1)>20){
                             Toast.makeText(MainActivity.this, "Trial period ended, please purchase!...", Toast.LENGTH_SHORT).show();
                             billingProcessor.purchase(MainActivity.this,"scantosheet_premium");
                         }else{
@@ -369,7 +369,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
     private void callSpreadsheetAPI() {
         int i;
         flagDialog=true;
-        alertDialogflag =true;
+        flagAlertDialog =true;
         sizeOfArrayList = scannedList.size();
         final String textUrl = pref.getString("urlOfSheet", null);
         final String textSheet = pref.getString("nameOfSheet", null);
@@ -479,7 +479,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
                         @Override
                         public void onErrorResponse(VolleyError error) {
                             dialog.dismiss();
-                            if(alertDialogflag) {
+                            if(flagAlertDialog) {
                                 new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
                                         .setTitle("Error! Failed to send data...")
                                         .setMessage("Please make sure that spreadsheet URL is valid & publicly editable.")
@@ -490,7 +490,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
                                                 //Whatever
                                             }
                                         }).show();
-                                alertDialogflag = false;
+                                flagAlertDialog = false;
                             }
                         }
                     }) {
@@ -538,8 +538,11 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.id_settingsMenu) {
-                Intent settingsIntent=new Intent(MainActivity.this,SettingsActivity.class);
-                startActivity(settingsIntent);
+                Intent intentSettings=new Intent(MainActivity.this,SettingsActivity.class);
+                intentSettings.putExtra("scannedList", scannedList);
+                intentSettings.putExtra("listDescOfItem", listDescOfItem);
+                intentSettings.putExtra("listNoteOfItem", listNoteOfItem);
+                startActivity(intentSettings);
         }
         return true;
     } //Settings menu ENDS here
@@ -572,6 +575,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
     public void onProductPurchased(String productId, TransactionDetails details) {
         editor.putBoolean("flagPurchased", true);
         editor.commit();
+        flagPurchased =pref.getBoolean("flagPurchased", false);
     }
 
     @Override
@@ -583,9 +587,6 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
 
     @Override
     public void onPurchaseHistoryRestored() {
-        Toast.makeText(MainActivity.this, "Your purchase is restored...", Toast.LENGTH_SHORT).show();
-        editor.putBoolean("flagPurchased", true);
-        editor.commit();
     }
 
 

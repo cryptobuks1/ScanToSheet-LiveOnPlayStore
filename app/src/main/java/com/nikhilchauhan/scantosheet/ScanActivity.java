@@ -20,8 +20,8 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
     ZXingScannerView scannerView;
     SharedPreferences pref;
     SharedPreferences.Editor editor;
-    ArrayList<String> scannedList;
 
+    ArrayList<String> scannedList;
     ArrayList<String> listDescOfItem;
     ArrayList<String> listNoteOfItem;
 
@@ -172,8 +172,6 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
         getMenuInflater().inflate(R.menu.menu_flash,menu);
         return true;
     }
-
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.id_flashSwitch) {

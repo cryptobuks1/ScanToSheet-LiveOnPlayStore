@@ -20,10 +20,16 @@ import android.widget.Switch;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import java.util.ArrayList;
+
 public class SettingsActivity extends AppCompatActivity {
     SharedPreferences pref;
     SharedPreferences.Editor editor;
     ConnectivityManager connectivityManager;
+
+    ArrayList<String> scannedList;
+    ArrayList<String> listDescOfItem;
+    ArrayList<String> listNoteOfItem;
 
     EditText id_nameOfSheet;
     EditText id_urlOfSheet;
@@ -38,6 +44,15 @@ public class SettingsActivity extends AppCompatActivity {
         pref = getApplicationContext().getSharedPreferences("mySharedPref", 0); // 0 - for private mode
         editor = pref.edit();
 
+        scannedList = new ArrayList<>();
+        listDescOfItem = new ArrayList<>();
+        listNoteOfItem = new ArrayList<>();
+        scannedList = (ArrayList) getIntent().getSerializableExtra("scannedList");
+        listDescOfItem = (ArrayList) getIntent().getSerializableExtra("listDescOfItem");
+        listNoteOfItem = (ArrayList) getIntent().getSerializableExtra("listNoteOfItem");
+
+        this.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        this.getSupportActionBar().setTitle("Done");
 
         id_nameOfSheet = findViewById(R.id.id_nameOfSheet);
         id_urlOfSheet = findViewById(R.id.id_urlOfSheet);
@@ -147,10 +162,43 @@ public class SettingsActivity extends AppCompatActivity {
 
     }
 
+
+    // Done pressed
+    @Override
+    public boolean onSupportNavigateUp() {
+        if(scannedList.isEmpty()){
+            Intent intentMain=new Intent(SettingsActivity.this, MainActivity.class);
+            startActivity(intentMain);
+            finish();
+        }else {
+            editor.putBoolean("flagForScan", true);
+            editor.commit();
+            Intent intentMain = new Intent(SettingsActivity.this, MainActivity.class);
+            intentMain.putExtra("scannedList", scannedList);
+            intentMain.putExtra("listDescOfItem", listDescOfItem);
+            intentMain.putExtra("listNoteOfItem", listNoteOfItem);
+            startActivity(intentMain);
+            finish();
+        }
+        return true;
+    }
+
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        Intent intentMain = new Intent(SettingsActivity.this,MainActivity.class);
-        startActivity(intentMain);
+        if(scannedList.isEmpty()){
+            Intent intentMain=new Intent(SettingsActivity.this, MainActivity.class);
+            startActivity(intentMain);
+            finish();
+        }else {
+            editor.putBoolean("flagForScan", true);
+            editor.commit();
+            Intent intentMain = new Intent(SettingsActivity.this, MainActivity.class);
+            intentMain.putExtra("scannedList", scannedList);
+            intentMain.putExtra("listDescOfItem", listDescOfItem);
+            intentMain.putExtra("listNoteOfItem", listNoteOfItem);
+            startActivity(intentMain);
+            finish();
+        }
     }
 }
