@@ -46,6 +46,9 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.anjlab.android.iab.v3.BillingProcessor;
 import com.anjlab.android.iab.v3.TransactionDetails;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.material.internal.NavigationMenu;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -86,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
 
     Vibrator vibrator;
     BillingProcessor billingProcessor;
+    InterstitialAd mAdView;
 
     Dialog modalScan;
     FabSpeedDial fabSpeedDial;
@@ -107,6 +111,8 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
         scannedList = new ArrayList<>();
         listDescOfItem = new ArrayList<>();
         listNoteOfItem = new ArrayList<>();
+
+        flagPurchased =pref.getBoolean("flagPurchased", false);
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         billingProcessor = BillingProcessor.newBillingProcessor(MainActivity.this, "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgweHIkf4bnV254X8bipY9Z5ZztQACMZdm/mZDlU+KCLwwM0MCaq+lbdpBleW1NzKAAjDl3LNbe1dKwaM+5/ESRit9BnlqXxGs+7FEaFLMkz95uJHS0QN5ffDuuMEMUpYzfj9Ir2uJDp+OFwg7euKb7U2biY+k0/oBlfRK7eVGEGB/Ju9JiNUerCayyFGAXz9/Q53/oPuBetAqRWIzPX1C8VjWOUknFR4TrJi0IrNz5hzBtHgdj4hQe2FYkFSpLS/MSsX3vCN3cvqjELxgqflysbWy79c/+jxxeD9d2EMH4eAnvo56k/x4dNQRR56XLVN3j6zrvnd0rYg84VcjLEjFQIDAQAB", MainActivity.this);
@@ -190,13 +196,12 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
             @Override
             public boolean onMenuItemSelected(MenuItem menuItem) {
                 if (menuItem.getItemId() == R.id.action_scan) {
-                    flagPurchased =pref.getBoolean("flagPurchased", false);
                     if(flagPurchased){
                         scanNow();
                     }else {
                         editor.putInt("scanCount", pref.getInt("scanCount", 0)+1); // Storing scanCount
                         editor.commit();
-                        if(pref.getInt("scanCount", 1)>20){
+                        if(pref.getInt("scanCount", 1)>50){
                             Toast.makeText(MainActivity.this, "Trial period ended, please purchase!...", Toast.LENGTH_SHORT).show();
                             billingProcessor.purchase(MainActivity.this,"scantosheet_premium");
                         }else{
@@ -218,6 +223,22 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
 
             }
         });
+
+        // Load Interstitial Ads
+        if(!flagPurchased){
+            mAdView = new InterstitialAd(MainActivity.this);
+            mAdView.setAdUnitId(getString(R.string.inter_home));
+            AdRequest adRequest = new AdRequest.Builder().build();
+            mAdView.loadAd(adRequest);
+            mAdView.setAdListener(new AdListener(){
+                @Override
+                public void onAdLoaded() {
+                    super.onAdLoaded();
+                    mAdView.show();
+                }
+            });
+        }
+
 
         //Checking for Internet Connection
         if(!(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
@@ -543,6 +564,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
                 intentSettings.putExtra("listDescOfItem", listDescOfItem);
                 intentSettings.putExtra("listNoteOfItem", listNoteOfItem);
                 startActivity(intentSettings);
+                finish();
         }
         return true;
     } //Settings menu ENDS here

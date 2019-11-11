@@ -15,22 +15,34 @@ import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.Toast;
 
+import com.anjlab.android.iab.v3.BillingProcessor;
+import com.anjlab.android.iab.v3.TransactionDetails;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends AppCompatActivity implements BillingProcessor.IBillingHandler{
     SharedPreferences pref;
     SharedPreferences.Editor editor;
     ConnectivityManager connectivityManager;
+    BillingProcessor billingProcessor;
+    InterstitialAd mAdView;
 
     ArrayList<String> scannedList;
     ArrayList<String> listDescOfItem;
     ArrayList<String> listNoteOfItem;
 
+    boolean flagPurchased;
+
+    Button id_btnPremium;
     EditText id_nameOfSheet;
     EditText id_urlOfSheet;
 //    Switch id_soundOnScan;
@@ -43,6 +55,11 @@ public class SettingsActivity extends AppCompatActivity {
         connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
         pref = getApplicationContext().getSharedPreferences("mySharedPref", 0); // 0 - for private mode
         editor = pref.edit();
+
+        flagPurchased =pref.getBoolean("flagPurchased", false);
+
+        billingProcessor = BillingProcessor.newBillingProcessor(SettingsActivity.this, "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgweHIkf4bnV254X8bipY9Z5ZztQACMZdm/mZDlU+KCLwwM0MCaq+lbdpBleW1NzKAAjDl3LNbe1dKwaM+5/ESRit9BnlqXxGs+7FEaFLMkz95uJHS0QN5ffDuuMEMUpYzfj9Ir2uJDp+OFwg7euKb7U2biY+k0/oBlfRK7eVGEGB/Ju9JiNUerCayyFGAXz9/Q53/oPuBetAqRWIzPX1C8VjWOUknFR4TrJi0IrNz5hzBtHgdj4hQe2FYkFSpLS/MSsX3vCN3cvqjELxgqflysbWy79c/+jxxeD9d2EMH4eAnvo56k/x4dNQRR56XLVN3j6zrvnd0rYg84VcjLEjFQIDAQAB", SettingsActivity.this);
+        billingProcessor.initialize(); // binds
 
         scannedList = new ArrayList<>();
         listDescOfItem = new ArrayList<>();
@@ -58,6 +75,7 @@ public class SettingsActivity extends AppCompatActivity {
         id_urlOfSheet = findViewById(R.id.id_urlOfSheet);
 //        id_soundOnScan = findViewById(R.id.id_soundOnScan);
         id_vibrateOnScan = findViewById(R.id.id_vibrateOnScan);
+        id_btnPremium = findViewById(R.id.id_btnPremium);
 
 
         // Setting Data to Input Boxes
@@ -92,6 +110,27 @@ public class SettingsActivity extends AppCompatActivity {
 //                editor.commit(); // commit changes
 //            }
 //        });
+
+        if(flagPurchased){
+            id_btnPremium.setText("Congratulations! you're a premium user");
+            id_btnPremium.setEnabled(false);
+        }
+
+        // Load Interstitial Ads
+        if(!flagPurchased){
+            mAdView = new InterstitialAd(SettingsActivity.this);
+            mAdView.setAdUnitId(getString(R.string.inter_settings));
+            AdRequest adRequest = new AdRequest.Builder().build();
+            mAdView.loadAd(adRequest);
+            mAdView.setAdListener(new AdListener(){
+                @Override
+                public void onAdLoaded() {
+                    super.onAdLoaded();
+                    mAdView.show();
+                }
+            });
+        }
+
     }
 
 
@@ -156,6 +195,12 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
 
+    //Premium Tapped
+    public void premiumTapped(View view){
+        billingProcessor.purchase(SettingsActivity.this,"scantosheet_premium");
+    }
+
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -200,5 +245,44 @@ public class SettingsActivity extends AppCompatActivity {
             startActivity(intentMain);
             finish();
         }
+    }
+
+    @Override
+    public void onBillingInitialized() {
+    }
+
+    @Override
+    public void onProductPurchased(String productId, TransactionDetails details) {
+        editor.putBoolean("flagPurchased", true);
+        editor.commit();
+        flagPurchased =pref.getBoolean("flagPurchased", false);
+        id_btnPremium.setText("Congratulations! you're a premium user");
+        id_btnPremium.setEnabled(false);
+    }
+
+    @Override
+    public void onBillingError(int errorCode, Throwable error) {
+        Toast.makeText(SettingsActivity.this, "Something went wrong!...", Toast.LENGTH_SHORT).show();
+        editor.putBoolean("flagPurchased", false);
+        editor.commit();
+    }
+
+    @Override
+    public void onPurchaseHistoryRestored() {
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (!billingProcessor.handleActivityResult(requestCode, resultCode, data)) {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+    @Override
+    public void onDestroy() {
+        if (billingProcessor != null) {
+            billingProcessor.release();
+        }
+        super.onDestroy();
     }
 }

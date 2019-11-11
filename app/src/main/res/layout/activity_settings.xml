@@ -128,6 +128,19 @@
             android:textSize="16dp"
             android:textAlignment="center"/>
 
+        <Button
+            android:id="@+id/id_btnPremium"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:onClick="premiumTapped"
+            android:shadowRadius="5.0"
+            android:text="Remove ads (30% OFF)"
+            android:textAllCaps="false"
+            style="?android:attr/borderlessButtonStyle"
+            android:textColor="@color/colorPrimary"
+            />
+
     </LinearLayout>
 
 

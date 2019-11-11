@@ -163,7 +163,7 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
             startActivity(intentMain);
             finish();
         }
-        return false;
+        return true;
     }
 
     //Settings Flash switch STARTS here
