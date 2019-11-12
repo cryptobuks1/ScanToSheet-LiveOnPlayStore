@@ -542,7 +542,7 @@ public class MainActivity extends AppCompatActivity implements BillingProcessor.
     public void helpTapped(View view){
         if((connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
                 connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED)){
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=X9B7uaxQnNg"));
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://youtu.be/74wt6XTpzgk"));
             startActivity(browserIntent);
         }else{
             Snackbar.make(view,"No Internet Connection!...️", Snackbar.LENGTH_LONG).show();
